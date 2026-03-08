@@ -5,6 +5,7 @@ This folder contains format-level documentation for RPG Maker MV/MZ tileset shee
 ## Included
 
 - [Autotiles](specs/autotiles.md)
+- [Canonical Shape Solver](specs/shape-solver.md)
 
 ## Notes
 

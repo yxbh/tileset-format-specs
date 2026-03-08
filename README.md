@@ -42,6 +42,7 @@ Current families:
 - RPG Maker MV/MZ:
   - `A2` autotiles
   - `A4` autotiles
+  - canonical floor/wall shape-solver spec
   - `A5`, `B`, `C`, `D`, `E` direct atlas slicing
 
 Not covered yet:
@@ -52,7 +53,6 @@ Not covered yet:
 
 ## Suggested Next Additions
 
-- a formal neighbor-mask-to-shape-index spec for RPG Maker floor and wall families
 - `A1` animated water and waterfall notes
 - `A3` wall autotile notes
 - side-by-side sample sheets built from synthetic art

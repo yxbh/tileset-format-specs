@@ -17,6 +17,8 @@ It is written for two audiences at once:
 - a human who wants an ELI5 explanation of what the sheet is doing
 - an agent or programmer who needs exact formulas and tables to implement it
 
+For canonical neighbor-mask solving, see [shape-solver.md](shape-solver.md).
+
 ## 1. Scope
 
 This spec defines:
