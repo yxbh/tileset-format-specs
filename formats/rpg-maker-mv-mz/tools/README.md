@@ -81,4 +81,5 @@ Notes:
 - Wall-top tiles are solved from wall footprint connectivity.
 - Visible wall-side strips are generated from south-exposed wall boundaries.
 - Side-strip connectivity is solved in strip/depth space so unrelated strips do not merge just because they land on the same screen row.
-- The renderer is intended as a visualization utility. It uses the canonical shape-solver model in this repo and does not claim to reproduce hidden editor-only shape numbering behavior.
+- The renderer derives official floor and wall shape indices from the published quarter tables, then composes tiles with the same A4 tables used by the preview tool.
+- Topmost wall-face cells connect upward into the wall cap so the face does not render with an exposed top edge.

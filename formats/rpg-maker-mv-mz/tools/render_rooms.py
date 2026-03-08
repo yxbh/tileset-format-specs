@@ -8,33 +8,22 @@ from PIL import Image, ImageColor, ImageDraw
 
 from render_previews import (
     CANVAS_COLOR,
+    FLOOR_AUTOTILE_TABLE,
     GRID_COLOR,
     MUTED_COLOR,
     TEXT_COLOR,
+    WALL_AUTOTILE_TABLE,
     checkerboard,
+    compose_tile,
     kind_layout,
     load_font,
     nonempty_kinds,
 )
 
 
-FLOOR_STATE_TO_TL_Q = {
-    "solid": (2, 4),
-    "inner": (2, 2),
-    "vertical_edge": (0, 4),
-    "horizontal_edge": (2, 0),
-    "outer_corner": (0, 2),
-    "isolated_corner": (0, 0),
-}
-
-WALL_STATE_TO_TL_Q = {
-    "solid": (2, 2),
-    "vertical_edge": (0, 2),
-    "horizontal_edge": (2, 0),
-    "outer_corner": (0, 0),
-}
-
 FLOOR_FILL = ImageColor.getrgb("#CBD5E1")
+FLOOR_FALLBACK_SHAPE = 47
+WALL_FALLBACK_SHAPE = 15
 
 
 @dataclass(frozen=True)
@@ -113,19 +102,113 @@ def read_room(path: Path) -> ParsedRoom:
     )
 
 
-def mirror_tr(coord: tuple[int, int]) -> tuple[int, int]:
-    x, y = coord
-    return (1 if x == 0 else 3, y)
+def solve_floor_quarter(v: bool, h: bool, d: bool) -> int:
+    if v and h and d:
+        return 4
+    if v and h:
+        return 3
+    if v:
+        return 1
+    if h:
+        return 2
+    return 0
 
 
-def mirror_bl(coord: tuple[int, int]) -> tuple[int, int]:
-    x, y = coord
-    return (x, y + 1)
+def solve_wall_quarter(v: bool, h: bool) -> int:
+    # A4 wall faces use the official wall table, but the visual notion of a
+    # "continuous horizontal run" is inverted relative to the source block's
+    # quarter-state layout.
+    h = not h
+    if v and h:
+        return 3
+    if v:
+        return 1
+    if h:
+        return 2
+    return 0
 
 
-def mirror_br(coord: tuple[int, int]) -> tuple[int, int]:
-    x, y = coord
-    return (1 if x == 0 else 3, y + 1)
+def floor_state_to_qtile_tl(state: int) -> tuple[int, int]:
+    return ((0, 2), (0, 4), (2, 2), (2, 0), (2, 4))[state]
+
+
+def floor_state_to_qtile_tr(state: int) -> tuple[int, int]:
+    return ((3, 2), (3, 4), (1, 2), (3, 0), (1, 4))[state]
+
+
+def floor_state_to_qtile_bl(state: int) -> tuple[int, int]:
+    return ((0, 5), (0, 3), (2, 5), (2, 1), (2, 3))[state]
+
+
+def floor_state_to_qtile_br(state: int) -> tuple[int, int]:
+    return ((3, 5), (3, 3), (1, 5), (3, 1), (1, 3))[state]
+
+
+def wall_state_to_qtile_tl(state: int) -> tuple[int, int]:
+    return ((2, 2), (2, 0), (0, 2), (0, 0))[state]
+
+
+def wall_state_to_qtile_tr(state: int) -> tuple[int, int]:
+    return ((1, 2), (1, 0), (3, 2), (3, 0))[state]
+
+
+def wall_state_to_qtile_bl(state: int) -> tuple[int, int]:
+    return ((2, 1), (2, 3), (0, 1), (0, 3))[state]
+
+
+def wall_state_to_qtile_br(state: int) -> tuple[int, int]:
+    return ((1, 1), (1, 3), (3, 1), (3, 3))[state]
+
+
+def flatten_entry(entry: list[list[int]]) -> tuple[int, ...]:
+    return tuple(value for quarter in entry for value in quarter)
+
+
+def build_floor_code_to_shape() -> dict[int, int]:
+    entry_to_shape = {flatten_entry(entry): shape for shape, entry in enumerate(FLOOR_AUTOTILE_TABLE)}
+    out: dict[int, int] = {}
+    for code in range(256):
+        w = bool(code & 1)
+        nw_raw = bool(code & 2)
+        n = bool(code & 4)
+        ne_raw = bool(code & 8)
+        e = bool(code & 16)
+        se_raw = bool(code & 32)
+        s = bool(code & 64)
+        sw_raw = bool(code & 128)
+
+        nw = nw_raw and n and w
+        ne = ne_raw and n and e
+        se = se_raw and s and e
+        sw = sw_raw and s and w
+
+        tl = floor_state_to_qtile_tl(solve_floor_quarter(n, w, nw))
+        tr = floor_state_to_qtile_tr(solve_floor_quarter(n, e, ne))
+        bl = floor_state_to_qtile_bl(solve_floor_quarter(s, w, sw))
+        br = floor_state_to_qtile_br(solve_floor_quarter(s, e, se))
+        out[code] = entry_to_shape.get((*tl, *tr, *bl, *br), FLOOR_FALLBACK_SHAPE)
+    return out
+
+
+def build_wall_code_to_shape() -> dict[int, int]:
+    entry_to_shape = {flatten_entry(entry): shape for shape, entry in enumerate(WALL_AUTOTILE_TABLE)}
+    out: dict[int, int] = {}
+    for code in range(16):
+        w = bool(code & 1)
+        n = bool(code & 2)
+        e = bool(code & 4)
+        s = bool(code & 8)
+
+        tl = wall_state_to_qtile_tl(solve_wall_quarter(n, w))
+        tr = wall_state_to_qtile_tr(solve_wall_quarter(n, e))
+        bl = wall_state_to_qtile_bl(solve_wall_quarter(s, w))
+        br = wall_state_to_qtile_br(solve_wall_quarter(s, e))
+        out[code] = entry_to_shape.get((*tl, *tr, *bl, *br), WALL_FALLBACK_SHAPE)
+    return out
+
+
+FLOOR_CODE_TO_SHAPE = build_floor_code_to_shape()
+WALL_CODE_TO_SHAPE = build_wall_code_to_shape()
 
 
 def choose_kind(present_kinds: list[int], requested: int | None, candidates: list[int], label: str) -> int:
@@ -141,107 +224,38 @@ def choose_kind(present_kinds: list[int], requested: int | None, candidates: lis
     return chosen
 
 
-def crop_quarter(image: Image.Image, origin_qx: int, origin_qy: int, quarter_size: int) -> Image.Image:
-    return image.crop(
-        (
-            origin_qx * quarter_size,
-            origin_qy * quarter_size,
-            (origin_qx + 1) * quarter_size,
-            (origin_qy + 1) * quarter_size,
-        )
-    )
+def floor_neighbor_code(cells: frozenset[tuple[int, int]], x: int, y: int) -> int:
+    code = 0
+    if (x - 1, y) in cells:
+        code |= 1
+    if (x - 1, y - 1) in cells:
+        code |= 2
+    if (x, y - 1) in cells:
+        code |= 4
+    if (x + 1, y - 1) in cells:
+        code |= 8
+    if (x + 1, y) in cells:
+        code |= 16
+    if (x + 1, y + 1) in cells:
+        code |= 32
+    if (x, y + 1) in cells:
+        code |= 64
+    if (x - 1, y + 1) in cells:
+        code |= 128
+    return code
 
 
-def compose_floor_tile(
-    image: Image.Image,
-    top_kind: int,
-    quarter_size: int,
-    states: tuple[str, str, str, str],
-) -> Image.Image:
-    layout = kind_layout("A4", top_kind)
-    quarters = [
-        FLOOR_STATE_TO_TL_Q[states[0]],
-        mirror_tr(FLOOR_STATE_TO_TL_Q[states[1]]),
-        mirror_bl(FLOOR_STATE_TO_TL_Q[states[2]]),
-        mirror_br(FLOOR_STATE_TO_TL_Q[states[3]]),
-    ]
-    tile = Image.new("RGBA", (quarter_size * 2, quarter_size * 2), (0, 0, 0, 0))
-    for index, (rel_qx, rel_qy) in enumerate(quarters):
-        subtile = crop_quarter(image, layout.origin_qx + rel_qx, layout.origin_qy + rel_qy, quarter_size)
-        tile.paste(subtile, ((index % 2) * quarter_size, (index // 2) * quarter_size))
-    return tile
-
-
-def compose_wall_tile(
-    image: Image.Image,
-    side_kind: int,
-    quarter_size: int,
-    states: tuple[str, str, str, str],
-) -> Image.Image:
-    layout = kind_layout("A4", side_kind)
-    quarters = [
-        WALL_STATE_TO_TL_Q[states[0]],
-        mirror_tr(WALL_STATE_TO_TL_Q[states[1]]),
-        mirror_bl(WALL_STATE_TO_TL_Q[states[2]]),
-        mirror_br(WALL_STATE_TO_TL_Q[states[3]]),
-    ]
-    tile = Image.new("RGBA", (quarter_size * 2, quarter_size * 2), (0, 0, 0, 0))
-    for index, (rel_qx, rel_qy) in enumerate(quarters):
-        subtile = crop_quarter(image, layout.origin_qx + rel_qx, layout.origin_qy + rel_qy, quarter_size)
-        tile.paste(subtile, ((index % 2) * quarter_size, (index // 2) * quarter_size))
-    return tile
-
-
-def solve_floor_signature(
-    n: bool,
-    e: bool,
-    s: bool,
-    w: bool,
-    nw_raw: bool,
-    ne_raw: bool,
-    se_raw: bool,
-    sw_raw: bool,
-) -> tuple[str, str, str, str]:
-    nw = nw_raw and n and w
-    ne = ne_raw and n and e
-    sw = sw_raw and s and w
-    se = se_raw and s and e
-
-    def solve(v: bool, h: bool, d: bool, opposite_v: bool, opposite_h: bool) -> str:
-        if v and h and d:
-            return "solid"
-        if v and h and not d:
-            return "inner"
-        if v and not h:
-            return "vertical_edge"
-        if not v and h:
-            return "horizontal_edge"
-        return "outer_corner" if (opposite_v or opposite_h) else "isolated_corner"
-
-    return (
-        solve(n, w, nw, s, e),
-        solve(n, e, ne, s, w),
-        solve(s, w, sw, n, e),
-        solve(s, e, se, n, w),
-    )
-
-
-def solve_wall_signature(n: bool, e: bool, s: bool, w: bool) -> tuple[str, str, str, str]:
-    def solve(v: bool, h: bool) -> str:
-        if v and h:
-            return "solid"
-        if v and not h:
-            return "vertical_edge"
-        if not v and h:
-            return "horizontal_edge"
-        return "outer_corner"
-
-    return (
-        solve(n, w),
-        solve(n, e),
-        solve(s, w),
-        solve(s, e),
-    )
+def face_neighbor_code(face_set: set[tuple[int, int, int]], x: int, strip_y: int, depth: int) -> int:
+    code = 0
+    if (x - 1, strip_y, depth) in face_set:
+        code |= 1
+    if depth == 0 or (x, strip_y, depth - 1) in face_set:
+        code |= 2
+    if (x + 1, strip_y, depth) in face_set:
+        code |= 4
+    if (x, strip_y, depth + 1) in face_set:
+        code |= 8
+    return code
 
 
 def render_room(
@@ -255,6 +269,10 @@ def render_room(
     quarter_size = tile_size // 2
     canvas = checkerboard((room.width * tile_size, (room.height + wall_height) * tile_size), block=tile_size // 2)
     draw = ImageDraw.Draw(canvas)
+    top_layout = kind_layout("A4", top_kind)
+    side_layout = kind_layout("A4", side_kind)
+    top_tile_cache: dict[int, Image.Image] = {}
+    side_tile_cache: dict[int, Image.Image] = {}
 
     for x, y in room.floor_cells:
         draw.rectangle(
@@ -263,15 +281,11 @@ def render_room(
         )
 
     for x, y in sorted(room.wall_cells, key=lambda cell: (cell[1], cell[0])):
-        n = (x, y - 1) in room.wall_cells
-        e = (x + 1, y) in room.wall_cells
-        s = (x, y + 1) in room.wall_cells
-        w = (x - 1, y) in room.wall_cells
-        nw = (x - 1, y - 1) in room.wall_cells
-        ne = (x + 1, y - 1) in room.wall_cells
-        se = (x + 1, y + 1) in room.wall_cells
-        sw = (x - 1, y + 1) in room.wall_cells
-        top_tile = compose_floor_tile(image, top_kind, quarter_size, solve_floor_signature(n, e, s, w, nw, ne, se, sw))
+        shape = FLOOR_CODE_TO_SHAPE.get(floor_neighbor_code(room.wall_cells, x, y), FLOOR_FALLBACK_SHAPE)
+        top_tile = top_tile_cache.get(shape)
+        if top_tile is None:
+            top_tile = compose_tile(image, top_layout, shape, quarter_size)
+            top_tile_cache[shape] = top_tile
         canvas.alpha_composite(top_tile, (x * tile_size, y * tile_size))
 
     face_cells: list[tuple[int, int, int, int]] = []
@@ -283,11 +297,11 @@ def render_room(
 
     face_set = {(x, strip_y, depth) for x, strip_y, depth, _ in face_cells}
     for x, strip_y, depth, screen_y in sorted(face_cells, key=lambda cell: (cell[3], cell[1], cell[2], cell[0])):
-        n = (x, strip_y, depth - 1) in face_set
-        e = (x + 1, strip_y, depth) in face_set
-        s = (x, strip_y, depth + 1) in face_set
-        w = (x - 1, strip_y, depth) in face_set
-        side_tile = compose_wall_tile(image, side_kind, quarter_size, solve_wall_signature(n, e, s, w))
+        shape = WALL_CODE_TO_SHAPE.get(face_neighbor_code(face_set, x, strip_y, depth), WALL_FALLBACK_SHAPE)
+        side_tile = side_tile_cache.get(shape)
+        if side_tile is None:
+            side_tile = compose_tile(image, side_layout, shape, quarter_size)
+            side_tile_cache[shape] = side_tile
         canvas.alpha_composite(side_tile, (x * tile_size, screen_y * tile_size))
 
     return canvas
