@@ -25,7 +25,7 @@ formats/
     README.md
     specs/
     samples/
-tools/
+    tools/
 ```
 
 Current families:
@@ -46,10 +46,7 @@ Current families:
   - `A4` autotiles
   - canonical floor/wall shape-solver spec
   - `A5`, `B`, `C`, `D`, `E` direct atlas slicing
-
-Tools:
-
-- [RPG Maker preview renderer](tools/README.md)
+  - [preview utility](formats/rpg-maker-mv-mz/tools/README.md)
 
 Not covered yet:
 

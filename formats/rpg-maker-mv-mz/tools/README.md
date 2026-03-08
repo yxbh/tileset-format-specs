@@ -8,7 +8,7 @@ They should be:
 - safe to run on user-supplied assets
 - usable without committing third-party art into the repository
 
-## `render_rpgmaker_previews.py`
+## `render_previews.py`
 
 Renders diagnostic preview images for RPG Maker MV/MZ `A2` and `A4` sheets.
 
@@ -24,7 +24,7 @@ Dependency:
 Example:
 
 ```bash
-python tools/render_rpgmaker_previews.py \
+python formats/rpg-maker-mv-mz/tools/render_previews.py \
   --sheet-type A4 \
   --image /path/to/A4.png \
   --out-dir /path/to/output
@@ -33,7 +33,7 @@ python tools/render_rpgmaker_previews.py \
 Optional representative kind override:
 
 ```bash
-python tools/render_rpgmaker_previews.py \
+python formats/rpg-maker-mv-mz/tools/render_previews.py \
   --sheet-type A2 \
   --image /path/to/A2.png \
   --out-dir /path/to/output \
