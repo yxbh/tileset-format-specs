@@ -52,6 +52,10 @@ Notes:
 
 Renders footprint-first sample rooms from an RPG Maker MV/MZ `A4` sheet and ASCII room definitions.
 
+Behavioral reference:
+
+- [A4 Room Visualization Spec](../specs/a4-room-visualization.md)
+
 Outputs:
 
 - one PNG per room file
