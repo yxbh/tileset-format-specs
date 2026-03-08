@@ -18,3 +18,7 @@ Avoid committing:
 Current contents:
 
 - [ASCII wall-footprint room](ascii/wall_footprint_room_01.txt)
+- [Room 01: Rect Ring](ascii/room_01_rect_ring.txt)
+- [Room 02: Offset Hall](ascii/room_02_offset_hall.txt)
+- [Room 03: Courtyard Core](ascii/room_03_courtyard_core.txt)
+- [Room 04: Twin Rooms](ascii/room_04_twin_rooms.txt)

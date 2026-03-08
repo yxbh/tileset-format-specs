@@ -47,3 +47,38 @@ Notes:
 - It allows extra height below canonical `A4` content and marks that area in the annotated output.
 - It does not implement `A1` or `A3`.
 - It does not commit or depend on any sample art.
+
+## `render_rooms.py`
+
+Renders footprint-first sample rooms from an RPG Maker MV/MZ `A4` sheet and ASCII room definitions.
+
+Outputs:
+
+- one PNG per room file
+- a gallery PNG when rendering multiple rooms
+
+Example using bundled samples:
+
+```bash
+python formats/rpg-maker-mv-mz/tools/render_rooms.py \
+  --image /path/to/A4.png \
+  --out-dir /path/to/output
+```
+
+Example using an explicit room file:
+
+```bash
+python formats/rpg-maker-mv-mz/tools/render_rooms.py \
+  --image /path/to/A4.png \
+  --out-dir /path/to/output \
+  --room formats/rpg-maker-mv-mz/samples/ascii/room_01_rect_ring.txt \
+  --wall-height 3
+```
+
+Notes:
+
+- This renderer uses the repo's canonical footprint-first wall interpretation.
+- Wall-top tiles are solved from wall footprint connectivity.
+- Visible wall-side strips are generated from south-exposed wall boundaries.
+- Side-strip connectivity is solved in strip/depth space so unrelated strips do not merge just because they land on the same screen row.
+- The renderer is intended as a visualization utility. It uses the canonical shape-solver model in this repo and does not claim to reproduce hidden editor-only shape numbering behavior.

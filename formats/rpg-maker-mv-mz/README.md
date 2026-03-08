@@ -10,6 +10,7 @@ This folder contains format-level documentation for RPG Maker MV/MZ tileset shee
 ## Utilities
 
 - [Preview Renderer](tools/README.md)
+- [Room Renderer](tools/README.md)
 
 ## Notes
 
