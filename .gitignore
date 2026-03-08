@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+
+# Keep raw or local-only art out of the repo unless its license is explicit.
+samples_raw/
+private/
