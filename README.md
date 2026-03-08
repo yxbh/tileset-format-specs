@@ -14,6 +14,7 @@ This repo exists to store:
 - lookup tables
 - sheet geometry rules
 - synthetic or redistributable samples
+- optional helper utilities
 - debugging notes that help another agent or programmer implement a decoder
 
 ## Repository Layout
@@ -24,6 +25,7 @@ formats/
     README.md
     specs/
     samples/
+tools/
 ```
 
 Current families:
@@ -44,6 +46,10 @@ Current families:
   - `A4` autotiles
   - canonical floor/wall shape-solver spec
   - `A5`, `B`, `C`, `D`, `E` direct atlas slicing
+
+Tools:
+
+- [RPG Maker preview renderer](tools/README.md)
 
 Not covered yet:
 
