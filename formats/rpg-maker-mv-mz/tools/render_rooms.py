@@ -245,7 +245,13 @@ def floor_neighbor_code(cells: frozenset[tuple[int, int]], x: int, y: int) -> in
     return code
 
 
-def face_neighbor_code(face_set: set[tuple[int, int, int]], x: int, strip_y: int, depth: int) -> int:
+def face_neighbor_code(
+    face_set: set[tuple[int, int, int]],
+    x: int,
+    strip_y: int,
+    depth: int,
+    max_depth: int,
+) -> int:
     code = 0
     if (x - 1, strip_y, depth) in face_set:
         code |= 1
@@ -253,7 +259,8 @@ def face_neighbor_code(face_set: set[tuple[int, int, int]], x: int, strip_y: int
         code |= 2
     if (x + 1, strip_y, depth) in face_set:
         code |= 4
-    if (x, strip_y, depth + 1) in face_set:
+    # Only the lowest visible row gets the wall-side "bottom/skirting" variant.
+    if depth == max_depth:
         code |= 8
     return code
 
@@ -297,7 +304,10 @@ def render_room(
 
     face_set = {(x, strip_y, depth) for x, strip_y, depth, _ in face_cells}
     for x, strip_y, depth, screen_y in sorted(face_cells, key=lambda cell: (cell[3], cell[1], cell[2], cell[0])):
-        shape = WALL_CODE_TO_SHAPE.get(face_neighbor_code(face_set, x, strip_y, depth), WALL_FALLBACK_SHAPE)
+        shape = WALL_CODE_TO_SHAPE.get(
+            face_neighbor_code(face_set, x, strip_y, depth, wall_height - 1),
+            WALL_FALLBACK_SHAPE,
+        )
         side_tile = side_tile_cache.get(shape)
         if side_tile is None:
             side_tile = compose_tile(image, side_layout, shape, quarter_size)

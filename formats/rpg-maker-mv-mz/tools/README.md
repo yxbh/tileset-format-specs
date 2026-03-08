@@ -83,3 +83,4 @@ Notes:
 - Side-strip connectivity is solved in strip/depth space so unrelated strips do not merge just because they land on the same screen row.
 - The renderer derives official floor and wall shape indices from the published quarter tables, then composes tiles with the same A4 tables used by the preview tool.
 - Topmost wall-face cells connect upward into the wall cap so the face does not render with an exposed top edge.
+- Only the bottom-most visible face row gets the wall-side lower-edge or skirting variant; upper rows stay as continuous wall body.
