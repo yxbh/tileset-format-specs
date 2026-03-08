@@ -280,6 +280,7 @@ def render_room(
     side_layout = kind_layout("A4", side_kind)
     top_tile_cache: dict[int, Image.Image] = {}
     side_tile_cache: dict[int, Image.Image] = {}
+    draw_ops: list[tuple[int, int, int, int, Image.Image]] = []
 
     for x, y in room.floor_cells:
         draw.rectangle(
@@ -293,7 +294,7 @@ def render_room(
         if top_tile is None:
             top_tile = compose_tile(image, top_layout, shape, quarter_size)
             top_tile_cache[shape] = top_tile
-        canvas.alpha_composite(top_tile, (x * tile_size, y * tile_size))
+        draw_ops.append((y * tile_size, 1, y, x, top_tile))
 
     face_cells: list[tuple[int, int, int, int]] = []
     for x, y in room.wall_cells:
@@ -312,7 +313,10 @@ def render_room(
         if side_tile is None:
             side_tile = compose_tile(image, side_layout, shape, quarter_size)
             side_tile_cache[shape] = side_tile
-        canvas.alpha_composite(side_tile, (x * tile_size, screen_y * tile_size))
+        draw_ops.append((screen_y * tile_size, 0, strip_y, x, side_tile))
+
+    for screen_px, priority, source_y, x, tile in sorted(draw_ops, key=lambda item: (item[0], item[1], item[2], item[3])):
+        canvas.alpha_composite(tile, (x * tile_size, screen_px))
 
     return canvas
 
